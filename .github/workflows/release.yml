@@ -1,0 +1,52 @@
+name: "Plugin CI/CD"
+
+on:
+  push:
+    tags:
+      - '*'
+
+permissions:
+  contents: write
+    
+jobs:
+  plugin:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          lfs: true
+
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@v1.13.0
+        with:
+          arch: x86
+ 
+      - name: Compile plugin
+        run: |
+          cmake . --preset MP-Release -DPROJECT_VERSION="${{ github.ref_name }}"
+          cmake --build --preset MP-Release
+
+      - name: Find plugin
+        run: |
+          # Find VDF first, fallback to DLL
+          $plugin_path = Get-ChildItem -Recurse -Include *.vdf, *.dll -File |
+            Sort-Object { $_.Extension -eq ".vdf" } -Descending |
+            Select-Object -First 1 -ExpandProperty FullName
+
+          echo "Found plugin path: $plugin_path"
+
+          # Normalize path
+          $root = (Resolve-Path ".").Path + "\"
+          $plugin_path = $plugin_path.Replace($root, "")
+          $plugin_path = $plugin_path.Replace("\", "/")
+
+          echo "plugin_path=$plugin_path" >> $env:GITHUB_ENV
+
+      - name: Upload plugin
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: CHANGELOG.md
+          files: ${{ env.plugin_path }}

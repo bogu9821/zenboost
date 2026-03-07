@@ -1,0 +1,69 @@
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+
+stages:
+  - build
+  - release
+
+build:plugin:
+  stage: build
+  tags: [saas-windows-medium-amd64]
+  rules:
+    - if: '$CI_COMMIT_TAG'
+  before_script: |
+    function loadenv($bat_file)
+    {
+      $env_file = New-TemporaryFile
+      cmd /c " `"$bat_file`" $args && set > `"$env_file`" "
+
+      foreach($line in Get-Content "$env_file") 
+      {
+        if($line -match "^(.*?)=(.*)$")
+        {
+          Set-Content "env:\$($matches[1])" $matches[2]
+        }
+      }
+
+      Remove-Item "$env_file"
+    }
+
+    loadenv "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x86
+  script:
+    - cmake . --preset MP-Release -DPROJECT_VERSION="$CI_COMMIT_TAG"
+    - cmake --build --preset MP-Release
+    - |
+      $plugin_path = Get-ChildItem -Recurse -Include *.vdf, *.dll -File |
+        Sort-Object { $_.Extension -eq ".vdf" } -Descending |
+        Select-Object -First 1 -ExpandProperty FullName
+
+      echo "Found plugin path: $plugin_path"
+      Copy-Item $plugin_path .
+
+      Add-Content job.env "plugin_filename=$(Split-Path $plugin_path -Leaf)"
+      Add-Content job.env "plugin_job_id=${CI_JOB_ID}"
+  artifacts:
+    name: ${CI_PROJECT_TITLE}
+    paths:
+      - "*.vdf"
+      - "*.dll"
+    expire_in: never
+    reports:
+      dotenv: job.env
+
+release:plugin:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  rules:
+    - if: '$CI_COMMIT_TAG'
+  needs: [build:plugin]
+  script:
+    - echo "Creating ${CI_COMMIT_TAG} release"
+  release:
+    name: "${CI_COMMIT_TAG}"
+    tag_name: "$CI_COMMIT_TAG"
+    description: "./CHANGELOG.md"
+    assets:
+      links:
+        - name: "${plugin_filename}"
+          url: "${CI_PROJECT_URL}/-/jobs/${plugin_job_id}/artifacts/raw/${plugin_filename}"
+          link_type: "package"
