@@ -7,21 +7,21 @@ set(PROJECT_VERSION "1.0.0.0" CACHE STRING "Project version")
 
 include(target_add_versioninfo)
 
-project(UnionPlugin
+project(zenboost
 	DESCRIPTION "Union plugin for Gothic Games"
 	VERSION ${PROJECT_VERSION}
 )
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # By default template uses dynamically linked union-api target to avoid compatibility problems.
 # If you want to produce a standalone plugin, set this option to OFF
-set(GENERATE_UNION_API_DLL ON)
+set(GENERATE_UNION_API_DLL OFF)
 
 # By default template generates .vdf with the .dll and files form \vdf\_Work and \vdf\System
 # If you want to produce only the .dll, set this option to OFF
-set(GENERATE_VDF ON)
+set(GENERATE_VDF OFF)
 
 if (GENERATE_UNION_API_DLL AND NOT GENERATE_VDF)
 	message(WARNING "GENERATE_UNION_API_DLL is ON but GENERATE_VDF is OFF. UnionAPI.dll won't be included in the release.")
