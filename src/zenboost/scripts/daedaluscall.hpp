@@ -45,9 +45,6 @@ namespace zenboost
 		namespace detail
 		{
 			template<ReturnType T>
-			constexpr int type_to_enum();
-
-			template<ReturnType T>
 			constexpr int should_return();
 
 			struct CallFuncContext
@@ -178,7 +175,7 @@ namespace zenboost
 			{
 				return daedalus_call<T, true>(
 					t_par,
-					scripts::find_function(*t_par, t_name),
+					scripts::find_function<Upper>(*t_par, t_name),
 					t_clearStack,
 					std::move(t_args)...
 				);
@@ -189,7 +186,7 @@ namespace zenboost
 			const auto cachedFunctionIndex = parserCache.FindCache(t_name).value_or(invalidFunction);
 
 			const auto cacheExist = invalidFunction != cachedFunctionIndex;
-			const auto functionIndex = cacheExist ? cachedFunctionIndex : scripts::find_function(*t_par, t_name);
+			const auto functionIndex = cacheExist ? cachedFunctionIndex : scripts::find_function<Upper>(*t_par, t_name);
 
 			const auto result = daedalus_call<T, true>(t_par, functionIndex, t_clearStack, std::move(t_args)...);
 			if (result.has_value() && !cacheExist)
@@ -227,39 +224,6 @@ namespace zenboost
 
 		namespace detail
 		{
-			template<ReturnType T>
-			constexpr int type_to_enum()
-			{
-				if constexpr (std::same_as<T, int>)
-				{
-					return ZENGIN_NAMESPACE::zPAR_TYPE_INT;
-				}
-				else if constexpr (std::same_as<T, scripts::DaedalusFunction>)
-				{
-					return ZENGIN_NAMESPACE::zPAR_TYPE_FUNC;
-				}
-				else if constexpr (std::same_as<T, ZENGIN_NAMESPACE::zSTRING>)
-				{
-					return ZENGIN_NAMESPACE::zPAR_TYPE_STRING;
-				}
-				else if constexpr (std::same_as<T, float>)
-				{
-					return ZENGIN_NAMESPACE::zPAR_TYPE_FLOAT;
-				}
-				else if constexpr (std::is_pointer_v<T>)
-				{
-					return ZENGIN_NAMESPACE::zPAR_TYPE_INSTANCE;
-				}
-				else if constexpr (std::same_as<T, scripts::DaedalusVoid>)
-				{
-					return ZENGIN_NAMESPACE::zPAR_TYPE_VOID;
-				}
-				else
-				{
-					throw;
-				}
-			}
-
 			template<ReturnType T>
 			constexpr int should_return()
 			{
@@ -360,20 +324,20 @@ namespace zenboost
 			template<scripts::DaedalusData... Args>
 			constexpr bool CallFuncContext::check_all_types() const
 			{
-				size_t counter{};
-				bool valid{ true };
-				(((!check_type<Args>(counter++)
-					? (valid = false, false) : true)
+				size_t argumentOffset{};
+				bool areArgumentsValid{ true };
+				(((!check_type<Args>(argumentOffset++)
+					? (areArgumentsValid = false, false) : true)
 					&& ...));
 
-				return valid;
+				return areArgumentsValid;
 			}
 
 			template<ReturnType T>
 			inline bool CallFuncContext::check_type(const size_t t_offset) const
 			{
 				const auto symbol = m_parser->symtab.table[m_function.m_index + 1 + t_offset];
-				return symbol->type == static_cast<unsigned int>(type_to_enum<T>());
+				return symbol->type == static_cast<unsigned int>(scripts::data_type_to_enum<T>());
 			}
 
 			template<ReturnType T, scripts::DaedalusData... Args>

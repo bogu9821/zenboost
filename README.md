@@ -1,3 +1,14 @@
+# zenboost
+zenboost is a WIP library that, with modern C++, enables safer and simpler use of the zengin function engine, offering additional quality-of-life extensions.
+
+Some features:
+- Safe script function calls
+- Safe creation of external script functions
+- ... (WIP)
+
+zenboost is build on top of union-framework.
+
+# Template
 # Introduction
 
 This project serves as a starting point for creating a union plugin for the following Gothic games:

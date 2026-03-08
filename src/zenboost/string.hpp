@@ -140,6 +140,11 @@ namespace zenboost
 			}
 		}
 
+		constexpr void to_upper(std::string& t_str)
+		{
+			to_upper(std::span<char>{t_str.data(), t_str.length()});
+		}
+
 		template<std::size_t Size>
 		struct FixedUpperStr : FixedStr<Size>
 		{
