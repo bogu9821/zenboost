@@ -1,4 +1,5 @@
 // This file is included separately for each engine version
+#include "zenboost/zenboost.hpp"
 
 namespace GOTHIC_NAMESPACE 
 {
@@ -27,7 +28,20 @@ namespace GOTHIC_NAMESPACE
 
 	void Game_Loop()
 	{
-
+		namespace dc = zenboost::daedaluscall;
+		(void)dc::daedalus_call(
+			parser, 
+			zenboost::scripts::find_function(*parser, "PRINT"),
+			{}, 
+			zSTRING{ "BJORN" }
+		);
+		
+		(void)dc::daedalus_call(
+			parser,
+			dc::function_name("print"),
+			{},
+			zSTRING{ "PANKRATZ" }
+		);
 	}
 
 	void Game_PostLoop()
@@ -154,12 +168,12 @@ namespace GOTHIC_NAMESPACE
 	}*/
 
 
-	/*void __fastcall oCGame_MainWorld_Render(Union::Registers& reg);
+	void __fastcall oCGame_MainWorld_Render(Union::Registers& reg);
 	auto Partial_zCWorld_Render = Union::CreatePartialHook(reinterpret_cast<void*>(zSwitch(0x0063DC76, 0x0066498B, 0x0066BA76, 0x006C87EB)), &oCGame_MainWorld_Render);
 	void __fastcall oCGame_MainWorld_Render(Union::Registers& reg)
 	{
 		Game_Loop();
-	}*/
+	}
 
 	/*void __fastcall zCMenu_Render(zCMenu* self, void* vtable);
 	auto Hook_zCMenu_Render = Union::CreateHook(reinterpret_cast<void*>(zSwitch(0x004D0DA0, 0x004E14E0, 0x004DB270, 0x004DDC20)), &zCMenu_Render, Union::HookType::Hook_Detours);

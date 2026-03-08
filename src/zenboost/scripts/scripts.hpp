@@ -17,23 +17,30 @@ namespace zenboost
 		using Parser = GOTHIC_NAMESPACE::zCParser;
 
 		//TODO: maybe use binary serach?
-		template<bool ToUpper = true>
+		template<bool MakeNameUpper = true>
 		inline constexpr int parser_get_index(const Parser& t_parser, const std::string_view t_name)
 		{
-			//TODO use better way
-			[[maybe_unused]]
-			const auto upperName = std::string{};// ToUpper ? StrViewToUpperZengin(t_name) : std::string{};
-
-			if constexpr (ToUpper)
+			[[maybe_unused]] std::string toUpperBuffer{};
+			const auto get_symbol_name = [t_name, &toUpperBuffer]
 			{
-				//t_name = std::string_view{ upperName };
-			}
+				if constexpr (MakeNameUpper == false)
+				{
+					return t_name;
 
+				}
+				else
+				{
+					toUpperBuffer = t_name;
+					string::to_upper(toUpperBuffer);
+					return std::string_view{ toUpperBuffer };
+				}
+			};
+
+			const auto symbolToFind = get_symbol_name();
 			const auto& symbTab = t_parser.symtab.table;
-
 			for (int i = 0; i < symbTab.GetNum(); i++)
 			{
-				if (string::zstr_to_view(symbTab[i]->name) == t_name)
+				if (string::zstr_to_view(symbTab[i]->name) == symbolToFind)
 				{
 					return i;
 				}
@@ -76,12 +83,12 @@ namespace zenboost
 			{
 				auto const symb = t_parser.GetSymbol(m_index);//ParserGetSymbol(t_parser, m_index);
 
-				if (!symb)
+				if (!symb) [[unlikely]]
 				{
 					return nullptr;
 				}
 
-				if (symb->type != GOTHIC_NAMESPACE::zPAR_TYPE_FUNC)
+				if (symb->type != GOTHIC_NAMESPACE::zPAR_TYPE_FUNC) [[unlikely]]
 					//|| !(symb->flags & GOTHIC_NAMESPACE::zPAR_FLAG_CONST))
 				{
 					return nullptr;
@@ -107,9 +114,10 @@ namespace zenboost
 			return DaedalusFunction{ parser_get_index(t_parser, string::zstr_to_view(t_name)) };
 		}
 
-		inline DaedalusFunction find_function(const Parser& t_parser, const std::string_view& t_name)
+		template<bool MakeUpper = true>
+		inline DaedalusFunction find_function(const Parser& t_parser, const std::string_view t_name)
 		{
-			return DaedalusFunction{ parser_get_index(t_parser, t_name) };
+			return DaedalusFunction{ parser_get_index<MakeUpper>(t_parser, t_name) };
 		}
 
 
@@ -131,5 +139,66 @@ namespace zenboost
 			|| std::is_same_v<T, GOTHIC_NAMESPACE::zSTRING>
 			|| std::is_same_v<T, DaedalusVoid>
 			|| detail::SingleLevelPointer<T>;
+
+
+		template<DaedalusData T>
+		constexpr int data_type_to_enum()
+		{
+			using namespace ZENGIN_NAMESPACE;
+			if constexpr (std::same_as<T, int>)
+			{
+				return zPAR_TYPE_INT;
+			}
+			else if constexpr (std::same_as<T, scripts::DaedalusFunction>)
+			{
+				return zPAR_TYPE_FUNC;
+			}
+			else if constexpr (std::same_as<T, zSTRING>)
+			{
+				return zPAR_TYPE_STRING;
+			}
+			else if constexpr (std::same_as<T, float>)
+			{
+				return zPAR_TYPE_FLOAT;
+			}
+			else if constexpr (std::is_pointer_v<T>)
+			{
+				return zPAR_TYPE_INSTANCE;
+			}
+			else if constexpr (std::same_as<T, scripts::DaedalusVoid>)
+			{
+				return zPAR_TYPE_VOID;
+			}
+			else
+			{
+				throw;
+			}
+		}
+
+		template<DaedalusReturn T>
+		inline constexpr int return_type_to_enum()
+		{
+			using namespace ZENGIN_NAMESPACE;
+			if constexpr (std::is_same_v<T, int>)
+			{
+				return zPAR_TYPE_INT;
+			}
+			else if constexpr (std::is_same_v<T, zSTRING>)
+			{
+				return zPAR_TYPE_STRING;
+			}
+			else if constexpr (std::is_same_v<T, float>)
+			{
+				return zPAR_TYPE_FLOAT;
+			}
+			else if constexpr (std::is_pointer_v<T>)
+			{
+				return zPAR_TYPE_INSTANCE;
+			}
+			else if constexpr (std::is_void_v<T>)
+			{
+				return zPAR_TYPE_VOID;
+			}
+		}
 	}
 }
