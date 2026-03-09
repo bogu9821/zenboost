@@ -57,21 +57,33 @@ namespace zenboost
 			};
 
 			template<scripts::DaedalusData T>
-			inline constexpr auto stack_pop_data(scripts::Parser* const t_parser);
+			inline constexpr auto stack_pop_data(scripts::Parser& t_parser);
 
 			template<scripts::DaedalusReturn T, bool PerParserInstance = false>
 			auto get_external_return_buffer() -> decltype(auto);
+
+			template<typename T1, typename T2>
+			constexpr bool are_externals_same()
+			{
+				return T1::s_name == T2::s_name;
+			}
+
+			template<typename T, typename... Types>
+			constexpr bool are_externals_unique_v = ((!are_externals_same<T, Types>()) && ...) && are_externals_unique_v<Types...>;
+
+			template<typename T>
+			constexpr bool are_externals_unique_v<T> = true;
+
 		}
 
 		struct BaseExternal
 		{
-			static void DefineExternal(const auto& t_table) {};
+			static void define_external(const auto& t_table) {};
 		};
 
 		template<string::FixedStr Name, auto Callable, auto ConditionFunc = nullptr, bool PerParserInstance = false>
-			//TODO: maybe don't create string_view
-			requires(Name.as_view<std::string_view>()[0] != '[')
-		struct DaedalusExternal final : public BaseExternal
+			requires(Name[0] != '[')
+		struct DaedalusExternal final 
 		{
 			using CallableType = decltype(Callable);
 			using NameType = decltype(Name);
@@ -109,7 +121,7 @@ namespace zenboost
 					if constexpr (!CallableInfo::s_returnValue)
 					{
 						[[msvc::flatten]]
-						Callable(detail::stack_pop_data<std::decay_t<std::tuple_element_t<Is, CallableInfo::ArgumentTypes>>>(currentParser)...);
+						Callable(detail::stack_pop_data<std::decay_t<std::tuple_element_t<Is, CallableInfo::ArgumentTypes>>>(*currentParser)...);
 						
 					}
 					else
@@ -118,7 +130,7 @@ namespace zenboost
 						decltype(auto) returnValue = detail::get_external_return_buffer<ReturnDecay, PerParserInstance>();
 						{
 							[[msvc::flatten]]
-							returnValue = Callable(detail::stack_pop_data<std::decay_t<std::tuple_element_t<Is, CallableInfo::ArgumentTypes>>>(currentParser)...);
+							returnValue = Callable(detail::stack_pop_data<std::decay_t<std::tuple_element_t<Is, CallableInfo::ArgumentTypes>>>(*currentParser)...);
 						}
 						currentParser->SetReturn(returnValue);
 					}
@@ -141,7 +153,7 @@ namespace zenboost
 				using scripts::data_type_to_enum;
 				using scripts::return_type_to_enum;
 				static zSTRING funcName;
-				funcName = zSTRING{ Name.as_view<std::string_view>().data() };
+				funcName = Name.as_view<std::string_view>().data();
 
 				auto const par = t_table.m_parser;
 
@@ -149,7 +161,7 @@ namespace zenboost
 				{
 					[&] <std::size_t... Is>(std::index_sequence<Is...>)
 					{
-						par->DefineExternal(funcName, &DaedalusExternal::definition, return_type_to_enum<std::decay_t<ReturnType>>(), data_type_to_enum<std::decay_t<std::tuple_element_t<Is, typename CallableInfo::ArgTypes>>>()..., 0);
+						par->DefineExternal(funcName, &DaedalusExternal::definition, return_type_to_enum<std::decay_t<ReturnType>>(), data_type_to_enum<std::decay_t<std::tuple_element_t<Is, typename CallableInfo::ArgumentTypes>>>()..., 0);
 
 					}(std::make_index_sequence<CallableInfo::s_argumentNum>());
 
@@ -162,30 +174,98 @@ namespace zenboost
 
 		};
 
+		struct BaseExternalTable
+		{
+			BaseExternalTable()
+			{
+				get_table_registry().push_back(this);
+			}
+
+			virtual ~BaseExternalTable()
+			{
+				std::erase(get_table_registry(), this);
+			}
+
+			virtual void define() const = 0;
+
+			static void register_tables()
+			{
+				for (const auto table : get_table_registry())
+				{
+					table->define();
+				}
+			}
+
+			static std::vector<BaseExternalTable*>& get_table_registry()
+			{
+				static std::vector<BaseExternalTable*> table;
+				return table;
+			}
+		};
+
+		template<typename E>
+		concept IsExternalDefinition = requires(E external, const BaseExternalTable& table)
+		{
+			external.define_external(table);
+		};
+
+		template<typename...Args>
+			requires (detail::are_externals_unique_v<Args...>&& (IsExternalDefinition<Args> && ...))
+		using ExternalsTuple = std::tuple<Args...>;
+
+
+		template<typename... Args>
+		struct ExternalTable final 
+			: public BaseExternalTable
+		{
+			using Table = ExternalsTuple<Args...>;
+
+			ExternalTable(scripts::Parser* const t_parser)
+				: m_parser(t_parser)
+
+			{
+			}
+
+			void define() const override
+			{
+				[&] <std::size_t... Is>(std::index_sequence<Is...>)
+				{
+					((std::tuple_element_t<Is, Table>::define_external(*this)), ...);
+				}(std::make_index_sequence<std::tuple_size_v<Table>>{});
+			}
+
+			scripts::Parser* m_parser;
+		};
+
+
 		namespace detail
 		{
 			template<scripts::DaedalusData T>
-			inline constexpr auto stack_pop_data(scripts::Parser* const t_parser)
+			inline constexpr auto stack_pop_data(scripts::Parser& t_parser)
 			{
-				if constexpr (std::is_same_v<T, int> || std::is_same_v<T, scripts::DaedalusFunction>)
+				if constexpr (std::same_as<T, int> || std::same_as<T, scripts::DaedalusFunction>)
 				{
 					int parameter;
-					t_parser->GetParameter(parameter);
+					t_parser.GetParameter(parameter);
 					return T{ parameter };
 				}
-				else if constexpr (std::is_same_v<T, float>)
+				else if constexpr (std::same_as<T, float>)
 				{
 					float parameter;
-					t_parser->GetParameter(parameter);
+					t_parser.GetParameter(parameter);
 					return parameter;
 				}
-				else if constexpr (std::is_same_v<T, ZENGIN_NAMESPACE::zSTRING>)
+				else if constexpr (std::same_as<T, ZENGIN_NAMESPACE::zSTRING>)
 				{
-					return std::cref(*t_parser->PopString());
+					return std::cref(*t_parser.PopString());
 				}
 				else if constexpr (std::is_pointer_v<T>)
 				{
-					return static_cast<T>(t_parser->GetInstance());
+					return static_cast<T>(t_parser.GetInstance());
+				}
+				else
+				{
+					throw;
 				}
 			}
 
@@ -193,7 +273,12 @@ namespace zenboost
 			auto get_external_return_buffer() -> decltype(auto)
 			{
 				using VarType = std::decay_t<T>;
-				if constexpr (std::same_as<VarType, ZENGIN_NAMESPACE::zSTRING>)
+				static constexpr auto isStr = std::same_as<VarType, ZENGIN_NAMESPACE::zSTRING>;
+				if constexpr (isStr == false)
+				{
+					return VarType{};
+				}
+				else
 				{
 					if constexpr (PerParserInstance == false)
 					{
@@ -211,10 +296,6 @@ namespace zenboost
 						auto& str = buffers[scripts::Parser::cur_parser].emplace_front();
 						return (str);
 					}
-				}
-				else
-				{
-					return VarType{};
 				}
 			}
 		}

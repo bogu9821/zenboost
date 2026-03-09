@@ -137,7 +137,7 @@ namespace zenboost
 			//|| std::is_same_v<T, DaedalusFunction>
 			|| std::is_same_v<T, float>
 			|| std::is_same_v<T, GOTHIC_NAMESPACE::zSTRING>
-			|| std::is_same_v<T, DaedalusVoid>
+			|| std::is_same_v<T, DaedalusVoid> || std::is_void_v<T>
 			|| detail::SingleLevelPointer<T>;
 
 

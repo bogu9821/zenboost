@@ -116,6 +116,30 @@ namespace zenboost
 			template<std::size_t LeftSize, std::size_t RightSize>
 			friend constexpr auto operator+(const FixedStr<LeftSize>& t_left, const FixedStr<RightSize>& t_right);
 
+			template<std::size_t RightSize>
+			constexpr bool operator==(const FixedStr<RightSize>& t_right) const
+			{
+				if (size() != t_right.size())
+				{
+					return false;
+				}
+
+				for (std::size_t i = 0; i < size(); ++i)
+				{
+					if (m_array[i] != t_right.m_array[i])
+					{
+						return false;
+					}
+				}
+
+				return true;
+			}
+
+			constexpr auto&& operator[](this auto&& t_self, const std::size_t t_indexAt)
+			{
+				return static_cast<decltype(t_self)>(t_self).m_array[t_indexAt];
+			}
+			
 			char m_array[Size]{};
 			std::size_t m_realSize = Size - 1;
 		};
@@ -134,9 +158,9 @@ namespace zenboost
 
 		constexpr void to_upper(const std::span<char> t_str)
 		{
-			for (std::size_t i = 0; i < t_str.size(); ++i)
+			for (auto& ch : t_str)
 			{
-				t_str[i] = ToUpperTable::lookup(t_str[i]);
+				ch = ToUpperTable::lookup(ch);
 			}
 		}
 
