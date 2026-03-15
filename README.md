@@ -4,20 +4,8 @@ zenboost is a WIP library that, with modern C++, enables safer and simpler use o
 Some features:
 - Safe script function calls
 - Safe creation of external script functions
-- ... (WIP)
 
 zenboost is build on top of union-framework.
-
-# Template
-# Introduction
-
-This project serves as a starting point for creating a union plugin for the following Gothic games:
-- [Gothic I](https://gothic.fandom.com/wiki/Gothic_1)
-- [Gothic Sequel](https://gothic.fandom.com/wiki/Gothic_Sequel)
-- [Gothic II](https://en.wikipedia.org/wiki/Gothic_II)
-- [Gothic II Night of The Raven](https://en.wikipedia.org/wiki/Gothic_II:_Night_of_the_Raven).
-
-It provides a preconfigured base code designed to simplify the development process and help you focus on building new features for your plugin.
 
 # Requirements
 
