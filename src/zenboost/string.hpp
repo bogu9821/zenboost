@@ -2,8 +2,7 @@
 
 #include <cstddef>
 #include <limits>
-#include <type_traits>
-#include <span>
+#include <type_traits>>
 
 namespace zenboost
 {
