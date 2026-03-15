@@ -8,6 +8,8 @@
 #include <cstddef>
 #include <unordered_map>
 #include <forward_list>
+#include <tuple>
+#include <concepts>
 
 namespace zenboost
 {
