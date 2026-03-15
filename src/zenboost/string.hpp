@@ -166,17 +166,12 @@ namespace zenboost
 			return FixedStr{ t_left, t_right };
 		};
 
-		constexpr void to_upper(const std::span<char> t_str)
+		constexpr void to_upper(auto& t_stringRange)
 		{
-			for (auto& ch : t_str)
+			for (auto& ch : t_stringRange)
 			{
 				ch = ToUpperTable::lookup(ch);
 			}
-		}
-
-		constexpr void to_upper(std::string& t_str)
-		{
-			to_upper(std::span<char>{t_str.data(), t_str.length()});
 		}
 
 		template<std::size_t Size>
@@ -201,7 +196,7 @@ namespace zenboost
 		template<std::size_t Size>
 		constexpr void to_upper(FixedStr<Size>& t_str)
 		{
-			to_upper(t_str.as_view<std::span<char>>());
+			to_upper(t_str);
 		}
 
 		inline std::string_view zstr_to_view(const ZENGIN_NAMESPACE::zSTRING& t_string)
