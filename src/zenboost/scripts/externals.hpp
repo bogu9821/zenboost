@@ -2,6 +2,7 @@
 
 #include "zenboost/scripts/scripts.hpp"
 #include "zenboost/string.hpp"
+#include "zenboost/hook.hpp"
 
 #include <string_view>
 #include <vector>
@@ -76,6 +77,7 @@ namespace zenboost
 			template<typename T>
 			constexpr bool are_externals_unique_v<T> = true;
 
+			auto apply_hook();
 		}
 
 		struct BaseExternal
@@ -321,6 +323,25 @@ namespace zenboost
 					}
 				}
 			}
+		
+			void __fastcall define_externals_hook(void* t_oCGameThis, void* t_edx, zenboost::scripts::Parser* t_parser);
+
+			auto apply_hook()
+			{
+				// TODO: remove gothic-api dependency
+				const auto hookAddress = zSwitch(0x006495B0, 0x006715F0, 0x00677A00, 0x006D4780);
+				return zenboost::hook::create_hook(define_externals_hook, hookAddress);
+			}
+			
+			auto externalsHook = apply_hook();
+
+			void __fastcall define_externals_hook(void* t_oCGameThis, void* t_edx, zenboost::scripts::Parser* t_parser)
+			{
+				externalsHook(t_oCGameThis, t_edx, t_parser);
+				BaseExternalTable::register_tables();
+			}
+			
+
 		}
 	}
 }
