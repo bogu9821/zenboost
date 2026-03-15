@@ -193,16 +193,36 @@ namespace zenboost
 
 			static void register_tables()
 			{
+				static bool inited{};
+				
+				if (inited)
+				{
+					return;
+				}
+
+				inited = true;
+
 				for (const auto table : get_table_registry())
 				{
 					table->define();
 				}
+		
 			}
 
+		private:
 			static std::vector<BaseExternalTable*>& get_table_registry()
 			{
-				static std::vector<BaseExternalTable*> table;
-				return table;
+				// we want to be sure that vector destructor won't be called
+				// and memory will remain until program termination
+				// because BaseExternalTable may add/erase element from the vector
+				union Table
+				{
+					std::vector<BaseExternalTable*> m_storage{};
+					constexpr ~Table() {};
+				};
+
+				static Table table{};
+				return table.m_storage;
 			}
 		};
 
