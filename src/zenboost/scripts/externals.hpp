@@ -92,8 +92,8 @@ namespace zenboost
 			static constexpr bool s_isFunctionPointer = std::is_pointer_v<CallableType>
 				&& std::is_function_v<typename std::remove_pointer_t<CallableType>>;
 
-			static constexpr NameType s_name = Name;
-			static constexpr CallableType s_callable = Callable;
+			static constexpr const NameType& s_name = Name;
+			static constexpr const CallableType& s_callable = Callable;
 		
 			using SelfType = DaedalusExternal<Name, Callable, ConditionFunc>;
 			using CallableInfo = typename detail::FunctionPointerData<
