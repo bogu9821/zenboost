@@ -2,7 +2,7 @@
 
 #include <cstddef>
 #include <limits>
-#include <type_traits>>
+#include <type_traits>
 
 namespace zenboost
 {
