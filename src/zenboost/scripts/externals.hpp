@@ -81,7 +81,8 @@ namespace zenboost
 			static void define_external(const auto& t_table) {};
 		};
 
-		template<string::FixedStr Name, auto Callable, auto ConditionFunc = nullptr, bool PerParserInstance = false>
+		template<string::FixedStr Name, auto Callable, auto ConditionFunc = nullptr, bool PerParserInstance = false>\
+			// unnamed lambda doesn't have correct function name - don't support them
 			requires(Name[0] != '[')
 		struct DaedalusExternal final 
 		{
