@@ -38,7 +38,7 @@ namespace zenboost
 			static constexpr auto s_table = generate();
 		};
 		
-//TODO: don't undef globally	
+#pragma push_macro("max")
 #undef max
 		using ToUpperTable = TableGenerator<char, std::numeric_limits<unsigned char>::max() + 1, 
 			[](const char t_char)
@@ -47,7 +47,7 @@ namespace zenboost
 					? static_cast<char>(static_cast<unsigned char>(t_char) - ('a' - 'A'))
 					: t_char;
 			}>;
-
+#pragma pop_macro("max")
 		/*
 		using ToLowerTable = TableGenerator<char, std::numeric_limits<unsigned char>::max() + 1, 
 			[](const char t_char)
