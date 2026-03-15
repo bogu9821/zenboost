@@ -101,6 +101,16 @@ namespace zenboost
 				return m_realSize;
 			}
 
+			constexpr auto begin(this auto&& t_self) noexcept
+			{
+				return static_cast<decltype(t_self)>(t_self).m_array;
+			}
+
+			constexpr auto end(this auto&& t_self) noexcept
+			{ 
+				return static_cast<decltype(t_self)>(t_self).begin() + static_cast<decltype(t_self)>(t_self).size();
+			}
+
 			template<typename ViewT>
 			constexpr ViewT as_view() & noexcept
 			{
@@ -170,12 +180,13 @@ namespace zenboost
 		}
 
 		template<std::size_t Size>
-		struct FixedUpperStr : FixedStr<Size>
+		struct FixedUpperStr 
+			: FixedStr<Size>
 		{
 			consteval FixedUpperStr(const char(&source)[Size - 1]) 
 				: FixedStr<Size>{ source }
 			{
-				to_upper(this->as_view<std::span<char>>());
+				to_upper(*this);
 			}
 		};
 
