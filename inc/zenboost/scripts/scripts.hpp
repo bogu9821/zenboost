@@ -2,6 +2,9 @@
 
 #include "zenboost/string.hpp"
 #include <concepts>
+#include <string_view>
+#include <string>
+#include <type_traits>
 
 namespace zenboost
 {
@@ -18,7 +21,7 @@ namespace zenboost
 
 		//TODO: maybe use binary serach?
 		template<bool MakeNameUpper = true>
-		inline constexpr int parser_get_index(const Parser& t_parser, const std::string_view t_name)
+		inline int parser_get_index(const Parser& t_parser, const std::string_view t_name)
 		{
 			[[maybe_unused]] std::string toUpperBuffer{};
 			const auto get_symbol_name = [t_name, &toUpperBuffer]
@@ -49,7 +52,7 @@ namespace zenboost
 			return -1;
 		}
 
-		inline constexpr ParserSymbol* parser_get_symbol(const Parser& t_parser, const int t_index)
+		inline ParserSymbol* parser_get_symbol(const Parser& t_parser, const int t_index)
 		{
 			if (t_index < 0 || t_index >= t_parser.symtab.table.GetNum()) [[unlikely]]
 			{
@@ -59,7 +62,7 @@ namespace zenboost
 			return t_parser.symtab.table[t_index];
 		}
 
-		inline constexpr ParserSymbol* parser_get_symbol(const Parser& t_parser, const std::string_view t_name)
+		inline ParserSymbol* parser_get_symbol(const Parser& t_parser, const std::string_view t_name)
 		{
 			const auto index = parser_get_index(t_parser, t_name);
 
