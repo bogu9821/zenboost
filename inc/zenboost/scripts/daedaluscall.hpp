@@ -19,7 +19,7 @@ namespace zenboost
 		{
 			wrong_symbol,
 			wrong_arg_size,
-			wrog_arg_type,
+			wrong_arg_type,
 			wrong_return_type
 		};
 
@@ -375,7 +375,7 @@ namespace zenboost
 				{
 					if (!check_all_types<Args...>())
 					{
-						return eCallFuncError::wrog_arg_type;
+						return eCallFuncError::wrong_arg_type;
 					}
 				}
 
