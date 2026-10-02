@@ -157,7 +157,7 @@ namespace zenboost
 				using namespace ZENGIN_NAMESPACE;
 				using scripts::data_type_to_enum;
 				using scripts::return_type_to_enum;
-				static zSTRING funcName;
+				static string::ZenString funcName;
 				funcName = Name.as_view<std::string_view>().data();
 
 				auto const par = t_table.m_parser;
@@ -280,7 +280,7 @@ namespace zenboost
 					t_parser.GetParameter(parameter);
 					return parameter;
 				}
-				else if constexpr (std::same_as<T, ZENGIN_NAMESPACE::zSTRING>)
+				else if constexpr (std::same_as<T, string::ZenString>)
 				{
 					return std::cref(*t_parser.PopString());
 				}
@@ -298,7 +298,7 @@ namespace zenboost
 			auto get_external_return_buffer() -> decltype(auto)
 			{
 				using VarType = std::decay_t<T>;
-				static constexpr auto isStr = std::same_as<VarType, ZENGIN_NAMESPACE::zSTRING>;
+				static constexpr auto isStr = std::same_as<VarType, string::ZenString>;
 				if constexpr (isStr == false)
 				{
 					return VarType{};
@@ -307,7 +307,7 @@ namespace zenboost
 				{
 					if constexpr (PerParserInstance == false)
 					{
-						static ZENGIN_NAMESPACE::zSTRING str{};
+						static string::ZenString str{};
 						return (str);
 					}
 					else
@@ -315,7 +315,7 @@ namespace zenboost
 						// TODO: 
 						// 1. maybe don't use that much STL to improve compilation
 						// 2. maybe clear buffer on parser datastack clear
-						using StringPool = std::forward_list<ZENGIN_NAMESPACE::zSTRING>;
+						using StringPool = std::forward_list<string::ZenString>;
 						using PerParser = std::unordered_map<const scripts::Parser*, StringPool>;
 						static PerParser buffers;
 						auto& str = buffers[scripts::Parser::cur_parser].emplace_front();
