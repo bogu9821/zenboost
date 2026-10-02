@@ -200,7 +200,7 @@ namespace zenboost
 			to_upper(t_str);
 		}
 
-		inline std::string_view zstr_to_view(const ZenStringG& t_string)
+		inline std::string_view zstr_to_view(const ZenString& t_string)
 		{
 			return std::string_view{ t_string.ToChar(), static_cast<size_t>(t_string.Length()) };
 		}
