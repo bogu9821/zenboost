@@ -8,6 +8,8 @@ namespace zenboost
 {
 	namespace string
 	{
+		using ZenString = ZENGIN_NAMESPACE::zSTRING;
+
 		template<typename T, std::size_t Size, auto GenerationFunc>
 		struct TableGenerator
 		{
@@ -187,7 +189,7 @@ namespace zenboost
 		template<std::size_t Size>
 		FixedUpperStr(const char(&)[Size]) -> FixedUpperStr<Size + 1>;
 
-		inline void to_upper(ZENGIN_NAMESPACE::zSTRING& t_str)
+		inline void to_upper(ZenString& t_str)
 		{
 			(void)t_str.Upper();
 		}
@@ -198,7 +200,7 @@ namespace zenboost
 			to_upper(t_str);
 		}
 
-		inline std::string_view zstr_to_view(const ZENGIN_NAMESPACE::zSTRING& t_string)
+		inline std::string_view zstr_to_view(const ZenStringG& t_string)
 		{
 			return std::string_view{ t_string.ToChar(), static_cast<size_t>(t_string.Length()) };
 		}

@@ -162,6 +162,11 @@ namespace zenboost
 			return string::FixedUpperStr{ t_constexprString };
 		}
 
+		auto function_name(const string::ZenString& t_stringType)
+		{
+			return string::zstr_to_view(t_stringType);
+		}
+
 		constexpr auto function_name(const auto& t_stringType)
 		{
 			return static_cast<std::string_view>(t_stringType);
