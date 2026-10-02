@@ -1,14 +1,23 @@
 #pragma once
 
 #include <cstddef>
+#include <concepts>
 #include <limits>
+#include <string>
+#include <string_view>
 #include <type_traits>
 
 namespace zenboost
 {
 	namespace string
 	{
-		using ZenString = ZENGIN_NAMESPACE::zSTRING;
+		template<typename T>
+		concept ZenStringLike = requires(T& t_string, const T& t_constString)
+		{
+			{ t_string.Upper() };
+			{ t_constString.ToChar() } -> std::convertible_to<const char*>;
+			{ t_constString.Length() } -> std::convertible_to<int>;
+		};
 
 		template<typename T, std::size_t Size, auto GenerationFunc>
 		struct TableGenerator
@@ -39,16 +48,13 @@ namespace zenboost
 			static constexpr auto s_table = generate();
 		};
 		
-#pragma push_macro("max")
-#undef max
-		using ToUpperTable = TableGenerator<char, std::numeric_limits<unsigned char>::max() + 1, 
+		using ToUpperTable = TableGenerator<char, (std::numeric_limits<unsigned char>::max)() + 1,
 			[](const char t_char)
 			{
 				return t_char >= 'a' && t_char <= 'z'
 					? static_cast<char>(static_cast<unsigned char>(t_char) - ('a' - 'A'))
 					: t_char;
 			}>;
-#pragma pop_macro("max")
 		/*
 		using ToLowerTable = TableGenerator<char, std::numeric_limits<unsigned char>::max() + 1, 
 			[](const char t_char)
@@ -189,7 +195,8 @@ namespace zenboost
 		template<std::size_t Size>
 		FixedUpperStr(const char(&)[Size]) -> FixedUpperStr<Size + 1>;
 
-		inline void to_upper(ZenString& t_str)
+		template<ZenStringLike T>
+		inline void to_upper(T& t_str)
 		{
 			(void)t_str.Upper();
 		}
@@ -200,7 +207,8 @@ namespace zenboost
 			to_upper(t_str);
 		}
 
-		inline std::string_view zstr_to_view(const ZenString& t_string)
+		template<ZenStringLike T>
+		inline auto zstr_to_view(const T& t_string) -> std::string_view
 		{
 			return std::string_view{ t_string.ToChar(), static_cast<size_t>(t_string.Length()) };
 		}

@@ -12,12 +12,35 @@
 #include <tuple>
 #include <concepts>
 
+
+#define ZENBOOST_EXTERNAL(function) \
+    ::zenboost::externals::DaedalusExternal<#function, function>
+
+#define ZENBOOST_EXTERNAL_WITH_CONDITION(function, condition) \
+    ::zenboost::externals::DaedalusExternal<#function, function, condition>
+
+#define ZENBOOST_EXTERNAL_TABLE(name, parserPointer, ...) \
+    inline const ::zenboost::externals::ExternalTable<__VA_ARGS__> \
+        name{ parserPointer }
+
 namespace zenboost
 {
 	namespace externals
 	{
 		namespace detail
 		{
+			template<typename T>
+			struct MemberFunctionFirstArgument;
+
+			template<typename ReturnT, typename ClassT, typename ArgumentT, typename... ArgumentTs>
+			struct MemberFunctionFirstArgument<ReturnT(ClassT::*)(ArgumentT, ArgumentTs..., ...)>
+			{
+				using Type = std::remove_cvref_t<ArgumentT>;
+			};
+
+			template<typename ParserT>
+			using ParserString = typename MemberFunctionFirstArgument<decltype(&ParserT::DefineExternal)>::Type;
+
 			template<typename T> 
 			struct FunctionPointerData;
 
@@ -59,10 +82,10 @@ namespace zenboost
 				using Pointer = T(*)(Args..., ...) noexcept(true);
 			};
 
-			template<scripts::DaedalusData T>
-			inline constexpr auto stack_pop_data(scripts::Parser& t_parser);
+			template<scripts::DaedalusData T, typename ParserT>
+			inline constexpr auto stack_pop_data(ParserT& t_parser);
 
-			template<scripts::DaedalusReturn T, bool PerParserInstance = false>
+			template<scripts::DaedalusReturn T, bool PerParserInstance = false, typename ParserT = void>
 			auto get_external_return_buffer() -> decltype(auto);
 
 			template<typename T1, typename T2>
@@ -71,11 +94,12 @@ namespace zenboost
 				return T1::s_name == T2::s_name;
 			}
 
-			template<typename T, typename... Types>
-			constexpr bool are_externals_unique_v = ((!are_externals_same<T, Types>()) && ...) && are_externals_unique_v<Types...>;
+			template<typename... Types>
+			inline constexpr bool are_externals_unique_v = true;
 
-			template<typename T>
-			constexpr bool are_externals_unique_v<T> = true;
+			template<typename T, typename... Types>
+			inline constexpr bool are_externals_unique_v<T, Types...> =
+				((!are_externals_same<T, Types>()) && ...) && are_externals_unique_v<Types...>;
 
 			auto apply_hook();
 		}
@@ -118,24 +142,24 @@ namespace zenboost
 				}
 			}
 
+			template<typename ParserT>
 			static int __cdecl definition()
 			{
-				using namespace ZENGIN_NAMESPACE;
-				[currentParser = scripts::Parser::cur_parser] <std::size_t... Is>(std::index_sequence<Is...>) [[msvc::forceinline]]
+				[currentParser = ParserT::cur_parser] <std::size_t... Is>(std::index_sequence<Is...>) [[msvc::forceinline]]
 				{
 					if constexpr (!CallableInfo::s_returnValue)
 					{
 						[[msvc::flatten]]
-						Callable(detail::stack_pop_data<std::decay_t<std::tuple_element_t<Is, CallableInfo::ArgumentTypes>>>(*currentParser)...);
+						Callable(detail::stack_pop_data<std::decay_t<std::tuple_element_t<Is, CallableInfo::ArgumentTypes>>, ParserT>(*currentParser)...);
 						
 					}
 					else
 					{
 						using ReturnDecay = std::decay_t<ReturnType>;
-						decltype(auto) returnValue = detail::get_external_return_buffer<ReturnDecay, PerParserInstance>();
+						decltype(auto) returnValue = detail::get_external_return_buffer<ReturnDecay, PerParserInstance, ParserT>();
 						{
 							[[msvc::flatten]]
-							returnValue = Callable(detail::stack_pop_data<std::decay_t<std::tuple_element_t<Is, CallableInfo::ArgumentTypes>>>(*currentParser)...);
+							returnValue = Callable(detail::stack_pop_data<std::decay_t<std::tuple_element_t<Is, CallableInfo::ArgumentTypes>>, ParserT>(*currentParser)...);
 						}
 						currentParser->SetReturn(returnValue);
 					}
@@ -147,33 +171,33 @@ namespace zenboost
 			}
 
 			
-			static void define_external(const auto& t_table)
+			template<typename ParserT>
+			static void define_external(ParserT& t_parser)
 			{
 				if (!condition())
 				{
 					return;
 				}
 
-				using namespace ZENGIN_NAMESPACE;
 				using scripts::data_type_to_enum;
 				using scripts::return_type_to_enum;
-				static string::ZenString funcName;
+				static detail::ParserString<ParserT> funcName;
 				funcName = Name.as_view<std::string_view>().data();
 
-				auto const par = t_table.m_parser;
+				auto const par = &t_parser;
 
 				if constexpr (CallableInfo::s_argumentNum != 0)
 				{
 					[&] <std::size_t... Is>(std::index_sequence<Is...>)
 					{
-						par->DefineExternal(funcName, &DaedalusExternal::definition, return_type_to_enum<std::decay_t<ReturnType>>(), data_type_to_enum<std::decay_t<std::tuple_element_t<Is, typename CallableInfo::ArgumentTypes>>>()..., 0);
+						par->DefineExternal(funcName, &DaedalusExternal::template definition<ParserT>, return_type_to_enum<std::decay_t<ReturnType>>(), data_type_to_enum<std::decay_t<std::tuple_element_t<Is, typename CallableInfo::ArgumentTypes>>>()..., 0);
 
 					}(std::make_index_sequence<CallableInfo::s_argumentNum>());
 
 				}
 				else
 				{
-					par->DefineExternal(funcName, &DaedalusExternal::definition, return_type_to_enum<std::decay_t<ReturnType>>(), 0);
+					par->DefineExternal(funcName, &DaedalusExternal::template definition<ParserT>, return_type_to_enum<std::decay_t<ReturnType>>(), 0);
 				}
 			}
 
@@ -181,7 +205,8 @@ namespace zenboost
 
 		struct BaseExternalTable
 		{
-			BaseExternalTable()
+			explicit BaseExternalTable(void* const t_parser)
+				: m_parser(t_parser)
 			{
 				get_table_registry().push_back(this);
 			}
@@ -193,23 +218,18 @@ namespace zenboost
 
 			virtual void define() const = 0;
 
-			static void register_tables()
+			static void register_tables(const void* t_parser)
 			{
-				static bool inited{};
-				
-				if (inited)
-				{
-					return;
-				}
-
-				inited = true;
-
 				for (const auto table : get_table_registry())
 				{
-					table->define();
+					if (table->m_parser == t_parser)
+					{
+						table->define();
+					}
 				}
-		
 			}
+
+			void* m_parser{};
 
 		private:
 			static std::vector<BaseExternalTable*>& get_table_registry()
@@ -228,14 +248,8 @@ namespace zenboost
 			}
 		};
 
-		template<typename E>
-		concept IsExternalDefinition = requires(E external, const BaseExternalTable& table)
-		{
-			external.define_external(table);
-		};
-
 		template<typename...Args>
-			requires (detail::are_externals_unique_v<Args...>&& (IsExternalDefinition<Args> && ...))
+			requires detail::are_externals_unique_v<Args...>
 		using ExternalsTuple = std::tuple<Args...>;
 
 
@@ -244,29 +258,39 @@ namespace zenboost
 			: public BaseExternalTable
 		{
 			using Table = ExternalsTuple<Args...>;
+			using DefineFunction = void(*)(const ExternalTable&);
 
-			ExternalTable(scripts::Parser* const t_parser)
-				: m_parser(t_parser)
-
+			template<typename ParserT>
+			explicit ExternalTable(ParserT* const t_parser)
+				: BaseExternalTable(t_parser)
+				, m_define{ &define_for_parser<ParserT> }
 			{
 			}
 
 			void define() const override
 			{
+				m_define(*this);
+			}
+
+		private:
+			template<typename ParserT>
+			static void define_for_parser(const ExternalTable& t_table)
+			{
+				auto* const parser = static_cast<ParserT*>(t_table.m_parser);
 				[&] <std::size_t... Is>(std::index_sequence<Is...>)
 				{
-					((std::tuple_element_t<Is, Table>::define_external(*this)), ...);
+					((std::tuple_element_t<Is, Table>::template define_external<ParserT>(*parser)), ...);
 				}(std::make_index_sequence<std::tuple_size_v<Table>>{});
 			}
 
-			scripts::Parser* m_parser;
+			DefineFunction m_define{};
 		};
 
 
 		namespace detail
 		{
-			template<scripts::DaedalusData T>
-			inline constexpr auto stack_pop_data(scripts::Parser& t_parser)
+			template<scripts::DaedalusData T, typename ParserT>
+			inline constexpr auto stack_pop_data(ParserT& t_parser)
 			{
 				if constexpr (std::same_as<T, int> || std::same_as<T, scripts::DaedalusFunction>)
 				{
@@ -280,7 +304,7 @@ namespace zenboost
 					t_parser.GetParameter(parameter);
 					return parameter;
 				}
-				else if constexpr (std::same_as<T, string::ZenString>)
+				else if constexpr (string::ZenStringLike<T>)
 				{
 					return std::cref(*t_parser.PopString());
 				}
@@ -294,11 +318,11 @@ namespace zenboost
 				}
 			}
 
-			template<scripts::DaedalusReturn T, bool PerParserInstance>
+			template<scripts::DaedalusReturn T, bool PerParserInstance, typename ParserT>
 			auto get_external_return_buffer() -> decltype(auto)
 			{
 				using VarType = std::decay_t<T>;
-				static constexpr auto isStr = std::same_as<VarType, string::ZenString>;
+				static constexpr auto isStr = string::ZenStringLike<VarType>;
 				if constexpr (isStr == false)
 				{
 					return VarType{};
@@ -307,7 +331,7 @@ namespace zenboost
 				{
 					if constexpr (PerParserInstance == false)
 					{
-						static string::ZenString str{};
+						static scripts::ParserString<ParserT> str{};
 						return (str);
 					}
 					else
@@ -315,30 +339,32 @@ namespace zenboost
 						// TODO: 
 						// 1. maybe don't use that much STL to improve compilation
 						// 2. maybe clear buffer on parser datastack clear
-						using StringPool = std::forward_list<string::ZenString>;
-						using PerParser = std::unordered_map<const scripts::Parser*, StringPool>;
+						using StringPool = std::forward_list<scripts::ParserString<ParserT>>;
+						using PerParser = std::unordered_map<const ParserT*, StringPool>;
 						static PerParser buffers;
-						auto& str = buffers[scripts::Parser::cur_parser].emplace_front();
+						auto& str = buffers[ParserT::cur_parser].emplace_front();
 						return (str);
 					}
 				}
 			}
-		
-			void __fastcall define_externals_hook(void* t_oCGameThis, void* t_edx, zenboost::scripts::Parser* t_parser);
+
+			int __fastcall zCParser__LoadDat_hook(void* t_parser, void* t_edx, void* t_datName);
 
 			auto apply_hook()
 			{
 				// TODO: remove gothic-api dependency
-				const auto hookAddress = zSwitch(0x006495B0, 0x006715F0, 0x00677A00, 0x006D4780);
-				return zenboost::hook::create_hook(define_externals_hook, hookAddress);
+				//const auto hookAddress = zSwitch(0x006495B0, 0x006715F0, 0x00677A00, 0x006D4780);
+				const auto hookAddress = zSwitch(0x006E5680, 0x0071E130, 0x0072EEC0, 0x0078E900);
+				return zenboost::hook::create_hook(zCParser__LoadDat_hook, hookAddress);
 			}
 			
 			auto externalsHook = apply_hook();
 
-			void __fastcall define_externals_hook(void* t_oCGameThis, void* t_edx, zenboost::scripts::Parser* t_parser)
+			int __fastcall zCParser__LoadDat_hook(void* t_parser, void* t_edx, void* t_datName)
 			{
-				externalsHook(t_oCGameThis, t_edx, t_parser);
-				BaseExternalTable::register_tables();
+				BaseExternalTable::register_tables(t_parser);
+				const auto result = externalsHook(t_parser, t_edx, t_datName);				
+				return result;
 			}
 			
 

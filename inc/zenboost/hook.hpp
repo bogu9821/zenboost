@@ -11,8 +11,8 @@ namespace zenboost
 		template<typename Callable>
 		auto create_hook(Callable t_hookFunction, std::uintptr_t t_hookedAddress)
 		{
-			const auto memoryAddress = std::bit_cast<void*>(t_hookedAddress);
-			return Union::CreateHook(memoryAddress, static_cast<Callable&&>(t_hookFunction), Union::HookType::Hook_Detours);
+			const auto memoryAddress = reinterpret_cast<void*>(t_hookedAddress);
+			return Union::CreateHook(memoryAddress, static_cast<Callable&&>(t_hookFunction), Union::HookType::Hook_CallPatch);
 		}
 	}
 }

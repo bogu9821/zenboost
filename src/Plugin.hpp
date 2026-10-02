@@ -1,7 +1,14 @@
 // This file is included separately for each engine version
-
 namespace GOTHIC_NAMESPACE 
 {
+
+	int get_67()
+	{
+		return 67;
+	}
+
+	inline const zenboost::externals::ExternalTable<::zenboost::externals::DaedalusExternal<"get_67", get_67>> defaultt{ parser };
+
 	// NOTE! Callbacks won't be called by default, you need to uncomment
 	// hooks that will call specific callback
 

@@ -6,6 +6,8 @@
 #include <Union/Hook.h>
 #include <ZenGin/zGothicAPI.h>
 
+#include "zenboost/zenboost.hpp"
+
 #ifdef __G1
 #define GOTHIC_NAMESPACE Gothic_I_Classic
 #define ENGINE Engine_G1
