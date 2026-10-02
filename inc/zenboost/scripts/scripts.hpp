@@ -16,8 +16,8 @@ namespace zenboost
 			concept SingleLevelPointer = (std::is_pointer_v<std::decay_t<T>> && !std::is_pointer_v<std::remove_pointer_t<T>>);
 		}
 
-		using ParserSymbol = GOTHIC_NAMESPACE::zCPar_Symbol;
-		using Parser = GOTHIC_NAMESPACE::zCParser;
+		using ParserSymbol = ZENGIN_NAMESPACE::zCPar_Symbol;
+		using Parser = ZENGIN_NAMESPACE::zCParser;
 
 		//TODO: maybe use binary serach?
 		template<bool MakeNameUpper = true>
@@ -91,8 +91,8 @@ namespace zenboost
 					return nullptr;
 				}
 
-				if (symb->type != GOTHIC_NAMESPACE::zPAR_TYPE_FUNC) [[unlikely]]
-					//|| !(symb->flags & GOTHIC_NAMESPACE::zPAR_FLAG_CONST))
+				if (symb->type != ZENGIN_NAMESPACE::zPAR_TYPE_FUNC) [[unlikely]]
+					//|| !(symb->flags & ZENGIN_NAMESPACE::zPAR_FLAG_CONST))
 				{
 					return nullptr;
 				}
@@ -131,7 +131,7 @@ namespace zenboost
 			std::is_same_v<std::decay_t<T>, int>
 			|| std::is_same_v<std::decay_t<T>, DaedalusFunction>
 			|| std::is_same_v<std::decay_t<T>, float>
-			|| std::is_same_v<std::decay_t<T>, GOTHIC_NAMESPACE::zSTRING>
+			|| std::is_same_v<std::decay_t<T>, ZENGIN_NAMESPACE::zSTRING>
 			|| detail::SingleLevelPointer<T>;
 
 		template<typename T>
@@ -139,7 +139,7 @@ namespace zenboost
 			std::is_same_v<T, int>
 			//|| std::is_same_v<T, DaedalusFunction>
 			|| std::is_same_v<T, float>
-			|| std::is_same_v<T, GOTHIC_NAMESPACE::zSTRING>
+			|| std::is_same_v<T, ZENGIN_NAMESPACE::zSTRING>
 			|| std::is_same_v<T, DaedalusVoid> || std::is_void_v<T>
 			|| detail::SingleLevelPointer<T>;
 

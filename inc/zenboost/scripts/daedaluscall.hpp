@@ -162,6 +162,11 @@ namespace zenboost
 			return string::FixedUpperStr{ t_constexprString };
 		}
 
+		auto function_name(const string::ZenString& t_stringType)
+		{
+			return string::zstr_to_view(t_stringType);
+		}
+
 		constexpr auto function_name(const auto& t_stringType)
 		{
 			return static_cast<std::string_view>(t_stringType);
@@ -197,9 +202,9 @@ namespace zenboost
 			return result;
 		}
 
-		template<ReturnType T = IgnoreReturn, bool Cache = true, typename ZSTR = ZENGIN_NAMESPACE::zSTRING>
+		template<ReturnType T = IgnoreReturn, bool Cache = true, typename ZSTR = string::ZenString>
 		//hack for implicit zSTRING conversion
-			requires(std::same_as<ZSTR, ZENGIN_NAMESPACE::zSTRING>)
+			requires(std::same_as<ZSTR, string::ZenString>)
 		__forceinline std::expected<T, eCallFuncError> daedalus_call(
 			scripts::Parser* const t_par,
 			const ZSTR& t_name,
@@ -265,7 +270,7 @@ namespace zenboost
 					m_parser->datastack.Push(std::bit_cast<int>(t_argument));
 					m_parser->datastack.Push(ZENGIN_NAMESPACE::zPAR_TOK_PUSHINT);
 				}
-				else if constexpr (std::same_as<ArgType, ZENGIN_NAMESPACE::zSTRING>)
+				else if constexpr (std::same_as<ArgType, string::ZenString>)
 				{
 					m_parser->datastack.Push(reinterpret_cast<std::intptr_t>(&t_argument));
 					m_parser->datastack.Push(ZENGIN_NAMESPACE::zPAR_TOK_PUSHSTR);
@@ -284,7 +289,7 @@ namespace zenboost
 					//TODO check index?
 					return static_cast<T>(m_parser->GetInstance());
 				}
-				else if constexpr (std::same_as<T, ZENGIN_NAMESPACE::zSTRING>)
+				else if constexpr (std::same_as<T, string::ZenString>)
 				{
 					return std::cref(*m_parser->PopString());
 				}
@@ -306,7 +311,7 @@ namespace zenboost
 					(void)return_script_value<int>();
 					break;
 				case ZENGIN_NAMESPACE::zPAR_TYPE_STRING:
-					(void)return_script_value<ZENGIN_NAMESPACE::zSTRING>();
+					(void)return_script_value<string::ZenString>();
 					break;
 				case ZENGIN_NAMESPACE::zPAR_TYPE_FLOAT:
 					(void)return_script_value<float>();
